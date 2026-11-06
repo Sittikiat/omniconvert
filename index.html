@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniConvert - เว็บแปลงไฟล์อเนกประสงค์ Client-side</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Sarabun & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- JSZip for Batch Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sarabun', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 transition-colors">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+          <i class="fa-solid fa-arrows-rotate text-lg animate-spin-hover"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+            OmniConvert
+          </h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">แปลงไฟล์ปลอดภัย 100% บนเบราว์เซอร์</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <!-- Privacy Badge -->
+        <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+          <i class="fa-solid fa-shield-halved"></i> ข้อมูลไม่ถูกส่งออกนอกเครื่อง
+        </span>
+
+        <!-- Dark/Light Mode Toggle -->
+        <button id="themeToggleBtn" aria-label="Toggle Theme" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
+          <i class="fa-solid fa-moon inline dark:hidden text-indigo-600"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-8 space-y-8">
+    
+    <!-- Hero / Intro -->
+    <div class="text-center max-w-2xl mx-auto space-y-2">
+      <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        แปลงไฟล์ได้ทุกที่ ทุกเวลา <span class="text-brand-500">ฟรี ปลอดภัย</span>
+      </h2>
+      <p class="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+        แปลงรูปภาพ (JPG, PNG, WEBP, GIF, BMP) และเอกสาร/ข้อมูล (CSV, JSON, Markdown, HTML, TXT) ด้วยความเร็วสูง ไม่มีข้อจำกัดเรื่องความเป็นส่วนตัว
+      </p>
+    </div>
+
+    <!-- Drop Zone -->
+    <div id="dropZone" class="group relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 bg-white/50 dark:bg-slate-900/40 rounded-3xl p-8 sm:p-12 text-center transition-all cursor-pointer shadow-sm hover:shadow-xl hover:shadow-brand-500/5">
+      <input type="file" id="fileInput" multiple class="hidden" />
+      <div class="flex flex-col items-center justify-center space-y-4">
+        <div class="w-20 h-20 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-brand-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-cloud-arrow-up text-3xl"></i>
+        </div>
+        <div class="space-y-1">
+          <p class="text-lg font-bold text-slate-800 dark:text-slate-200">
+            ลากและวางไฟล์ที่นี่ หรือ <span class="text-brand-600 dark:text-indigo-400 underline decoration-2 underline-offset-4">คลิกเพื่อเลือกไฟล์</span>
+          </p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            รองรับไฟล์รูปภาพ (JPG, PNG, WEBP, BMP, GIF) และเอกสารข้อมูล (JSON, CSV, MD, HTML, TXT)
+          </p>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2 pt-2">
+          <span class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">PNG / JPG / WEBP</span>
+          <span class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">CSV ↔ JSON</span>
+          <span class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">MD ↔ HTML ↔ TXT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Image Options (Collapsible / Dynamic) -->
+    <div id="imageOptionsCard" class="hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-brand-500"></i> ตั้งค่าการแปลงรูปภาพเพิ่มเติม (Image Settings)
+        </h3>
+        <span class="text-xs text-slate-500">มีผลเฉพาะไฟล์ภาพ</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm">
+        <div>
+          <label class="block font-medium text-slate-600 dark:text-slate-400 mb-1">คุณภาพภาพ (Quality)</label>
+          <div class="flex items-center gap-3">
+            <input id="imageQualityInput" type="range" min="0.1" max="1" step="0.05" value="0.9" class="w-full accent-brand-600">
+            <span id="imageQualityVal" class="font-semibold text-slate-700 dark:text-slate-300 w-10 text-right">90%</span>
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 dark:text-slate-400 mb-1">ปรับความกว้างสูงสุด (Max Width)</label>
+          <input id="imageMaxWidth" type="number" placeholder="เช่น 1920 (เว้นว่างเพื่อคงเดิม)" class="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-slate-200 text-xs">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 dark:text-slate-400 mb-1">สีพื้นหลังกรณีโปร่งใส (Alpha Fallback)</label>
+          <div class="flex items-center gap-2">
+            <input id="imageBgColor" type="color" value="#ffffff" class="w-8 h-8 rounded-lg border-0 cursor-pointer">
+            <span class="text-xs text-slate-500">สำหรับแปลงเป็น JPG</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Queue Section -->
+    <div id="queueContainer" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex flex-wrap items-center gap-3">
+          <h3 class="font-bold text-slate-800 dark:text-slate-200 text-base">รายการไฟล์ในคิว (<span id="fileCount">0</span>)</h3>
+          
+          <!-- Global Target Selector -->
+          <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <label for="globalFormatSelect" class="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+              <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i> เปลี่ยนปลายทางทั้งหมดเป็น:
+            </label>
+            <select id="globalFormatSelect" class="px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="">-- เลือกนามสกุล --</option>
+              <optgroup label="รูปภาพ (Images)">
+                <option value="png">PNG (.png)</option>
+                <option value="jpg">JPG (.jpg)</option>
+                <option value="webp">WEBP (.webp)</option>
+                <option value="bmp">BMP (.bmp)</option>
+                <option value="ico">ICO (.ico)</option>
+              </optgroup>
+              <optgroup label="ข้อมูลและตาราง (Data)">
+                <option value="json">JSON (.json)</option>
+                <option value="csv">CSV (.csv)</option>
+                <option value="tsv">TSV (.tsv)</option>
+              </optgroup>
+              <optgroup label="เอกสารและข้อความ (Text/Docs)">
+                <option value="txt">TXT (.txt)</option>
+                <option value="md">Markdown (.md)</option>
+                <option value="html">HTML (.html)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="clearAllBtn" class="px-3 py-1.5 text-xs font-semibold rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 transition">
+            <i class="fa-regular fa-trash-can mr-1"></i> ล้างรายการ
+          </button>
+          <button id="convertAllBtn" class="px-5 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/25 transition active:scale-95 flex items-center gap-2">
+            <i class="fa-solid fa-play"></i> แปลงไฟล์ทั้งหมด
+          </button>
+          <button id="downloadAllZipBtn" class="hidden px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/25 transition active:scale-95 flex items-center gap-2">
+            <i class="fa-solid fa-file-zipper"></i> ดาวน์โหลดทั้งหมด (.ZIP)
+          </button>
+        </div>
+      </div>
+
+      <!-- Queue List -->
+      <div id="fileList" class="space-y-3">
+        <!-- Rendered items will appear here -->
+      </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="toastBox" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium">
+      <span id="toastIcon"></span>
+      <span id="toastMsg" class="text-slate-700 dark:text-slate-200"></span>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-500">
+    <p>OmniConvert &copy; ประมวลผลแบบ Client-side 100% ผ่าน Web APIs ปลอดภัยสูงสุด ไฟล์จะไม่ถูกบันทึกที่ใด</p>
+  </footer>
+
+  <!-- Core Conversion & Application Script -->
+  <script>
+    // Theme Management
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    function initTheme() {
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    }
+    initTheme();
+
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Quality slider sync
+    const imageQualityInput = document.getElementById('imageQualityInput');
+    const imageQualityVal = document.getElementById('imageQualityVal');
+    imageQualityInput.addEventListener('input', (e) => {
+      imageQualityVal.textContent = Math.round(e.target.value * 100) + '%';
+    });
+
+    // Supported formats configuration
+    const FORMAT_GROUPS = {
+      image: ['jpg', 'png', 'webp', 'bmp', 'ico'],
+      table: ['csv', 'json'],
+      document: ['txt', 'md', 'html', 'json']
+    };
+
+    const CONVERSION_TARGETS = {
+      // Images
+      jpg: ['png', 'webp', 'bmp', 'ico'],
+      jpeg: ['png', 'webp', 'bmp', 'ico'],
+      png: ['jpg', 'webp', 'bmp', 'ico'],
+      webp: ['jpg', 'png', 'bmp', 'ico'],
+      bmp: ['jpg', 'png', 'webp', 'ico'],
+      gif: ['jpg', 'png', 'webp'],
+      ico: ['png', 'jpg'],
+      svg: ['png', 'jpg', 'webp'],
+
+      // Spreadsheets & Data
+      csv: ['json', 'tsv', 'txt'],
+      tsv: ['csv', 'json', 'txt'],
+      json: ['csv', 'tsv', 'txt', 'html'],
+      xml: ['json', 'csv', 'txt'],
+
+      // Text & Documents
+      txt: ['csv', 'json', 'html', 'md'],
+      md: ['html', 'txt'],
+      markdown: ['html', 'txt'],
+      html: ['txt', 'md']
+    };
+
+    // State
+    let fileQueue = []; // array of { id, file, name, ext, category, size, status, targetExt, resultBlob, resultName, error }
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const queueContainer = document.getElementById('queueContainer');
+    const fileList = document.getElementById('fileList');
+    const fileCount = document.getElementById('fileCount');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const convertAllBtn = document.getElementById('convertAllBtn');
+    const downloadAllZipBtn = document.getElementById('downloadAllZipBtn');
+    const imageOptionsCard = document.getElementById('imageOptionsCard');
+    const globalFormatSelect = document.getElementById('globalFormatSelect');
+    const toastBox = document.getElementById('toastBox');
+    const toastIcon = document.getElementById('toastIcon');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimeout = null;
+
+    // Toast Notification System
+    function showToast(message, type = 'info') {
+      if (!toastBox || !toastMsg || !toastIcon) return;
+
+      if (toastTimeout) {
+        clearTimeout(toastTimeout);
+      }
+
+      toastMsg.textContent = message;
+
+      if (type === 'success') {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-500 text-lg';
+      } else if (type === 'error') {
+        toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-500 text-lg';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-info text-indigo-500 text-lg';
+      }
+
+      toastBox.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      toastBox.classList.add('translate-y-0', 'opacity-100');
+
+      toastTimeout = setTimeout(() => {
+        toastBox.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        toastBox.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    // Byte Formatter Helper
+    function formatBytes(bytes, decimals = 1) {
+      if (!+bytes) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    }
+
+    // Handle Global Target Format Change
+    if (globalFormatSelect) {
+      globalFormatSelect.addEventListener('change', (e) => {
+        const selected = e.target.value;
+        if (!selected) return;
+
+        let appliedCount = 0;
+        fileQueue.forEach(item => {
+          if (item.targets.includes(selected)) {
+            item.targetExt = selected;
+            item.status = 'idle';
+            item.resultBlob = null;
+            appliedCount++;
+          }
+        });
+
+        if (appliedCount > 0) {
+          showToast(`ปรับนามสกุลปลายทางเป็น .${selected.toUpperCase()} สำหรับ ${appliedCount} ไฟล์ที่รองรับ`, 'success');
+          updateUI();
+        } else {
+          showToast(`ไม่มีไฟล์ในคิวที่รองรับการแปลงเป็น .${selected.toUpperCase()}`, 'error');
+        }
+      });
+    }
+
+    // Detect File Category and Extension
+    function parseFileInfo(file) {
+      const nameParts = file.name.split('.');
+      let ext = nameParts.length > 1 ? nameParts.pop().toLowerCase() : '';
+      
+      // Fallback detection from mime
+      if (!ext && file.type) {
+        ext = file.type.split('/')[1]?.toLowerCase() || '';
+      }
+
+      let category = 'unknown';
+      if (['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'ico', 'svg'].includes(ext)) {
+        category = 'image';
+      } else if (['csv', 'tsv', 'xml'].includes(ext)) {
+        category = 'table';
+      } else if (['json', 'md', 'markdown', 'html', 'txt'].includes(ext)) {
+        category = 'document';
+      }
+
+      return { ext, category };
+    }
+
+    // Drag & Drop Listeners
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-brand-500', 'bg-brand-50/20');
+    });
+    ['dragleave', 'dragend'].forEach(evt => {
+      dropZone.addEventListener(evt, () => {
+        dropZone.classList.remove('border-brand-500', 'bg-brand-50/20');
+      });
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-brand-500', 'bg-brand-50/20');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFilesAdded(e.dataTransfer.files);
+      }
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFilesAdded(e.target.files);
+        fileInput.value = '';
+      }
+    });
+
+    // Handle Adding Files
+    function handleFilesAdded(files) {
+      let addedCount = 0;
+      for (const file of files) {
+        const { ext, category } = parseFileInfo(file);
+        const supportedTargets = CONVERSION_TARGETS[ext] || [];
+
+        // Check if supported
+        if (supportedTargets.length === 0) {
+          showToast(`ไม่รองรับฟอร์แมต .${ext || 'unknown'} ของไฟล์ ${file.name}`, 'error');
+          continue;
+        }
+
+        const item = {
+          id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+          file: file,
+          name: file.name,
+          baseName: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+          ext: ext,
+          category: category,
+          size: file.size,
+          targets: supportedTargets,
+          targetExt: supportedTargets[0],
+          status: 'idle', // idle, converting, done, error
+          progress: 0,
+          resultBlob: null,
+          resultName: '',
+          error: ''
+        };
+
+        fileQueue.push(item);
+        addedCount++;
+      }
+
+      if (addedCount > 0) {
+        showToast(`เพิ่มไฟล์สำเร็จ ${addedCount} รายการ`, 'success');
+        updateUI();
+      }
+    }
+
+    // Render Queue UI
+    function updateUI() {
+      fileCount.textContent = fileQueue.length;
+      if (fileQueue.length === 0) {
+        queueContainer.classList.add('hidden');
+        imageOptionsCard.classList.add('hidden');
+        downloadAllZipBtn.classList.add('hidden');
+        return;
+      }
+
+      queueContainer.classList.remove('hidden');
+
+      // Show/hide image options card if there is any image in queue
+      const hasImage = fileQueue.some(item => item.category === 'image');
+      if (hasImage) {
+        imageOptionsCard.classList.remove('hidden');
+      } else {
+        imageOptionsCard.classList.add('hidden');
+      }
+
+      // Check if all or any completed
+      const anyDone = fileQueue.some(item => item.status === 'done');
+      if (anyDone) {
+        downloadAllZipBtn.classList.remove('hidden');
+      } else {
+        downloadAllZipBtn.classList.add('hidden');
+      }
+
+      // Render cards
+      fileList.innerHTML = fileQueue.map(item => `
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition shadow-sm hover:shadow">
+          <!-- File info -->
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+              item.category === 'image' ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400' :
+              item.category === 'table' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' :
+              'bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
+            }">
+              <i class="fa-regular ${
+                item.category === 'image' ? 'fa-image' :
+                item.category === 'table' ? 'fa-file-excel' : 'fa-file-lines'
+              }"></i>
+            </div>
+            <div class="truncate">
+              <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">${escapeHtml(item.name)}</h4>
+              <p class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                <span>${formatBytes(item.size)}</span>
+                <span>•</span>
+                <span class="uppercase tracking-wider font-mono font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[11px] text-slate-600 dark:text-slate-300">${item.ext}</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Format Selector & Action -->
+          <div class="flex flex-wrap items-center justify-between sm:justify-end gap-3 shrink-0">
+            <!-- Explicit Format Selector Dropdown -->
+            <div class="flex items-center gap-2 bg-indigo-50/60 dark:bg-slate-800/80 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-slate-700">
+              <span class="text-xs font-semibold text-brand-600 dark:text-indigo-400 flex items-center gap-1">
+                <i class="fa-solid fa-arrow-right text-[10px]"></i> แปลงเป็น:
+              </span>
+              <select onchange="updateTargetExt('${item.id}', this.value)" ${item.status === 'converting' ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-xs font-bold uppercase focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm cursor-pointer">
+                ${item.targets.map(t => `<option value="${t}" ${t === item.targetExt ? 'selected' : ''}>.${t.toUpperCase()}</option>`).join('')}
+              </select>
+            </div>
+
+            <!-- Status / Controls -->
+            <div class="flex items-center gap-2">
+              ${renderItemStatusAction(item)}
+              <button onclick="removeFile('${item.id}')" title="ลบ" class="p-2 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress / Error Bar (if converting or failed) -->
+          ${item.status === 'converting' ? `
+            <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+              <div class="bg-brand-500 h-full transition-all duration-300 animate-pulse" style="width: 100%"></div>
+            </div>
+          ` : ''}
+          ${item.status === 'error' ? `
+            <p class="text-xs text-rose-500 mt-1 w-full"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ${escapeHtml(item.error)}</p>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderItemStatusAction(item) {
+      if (item.status === 'idle') {
+        return `
+          <button onclick="convertSingleFile('${item.id}')" class="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i> แปลง
+          </button>
+        `;
+      }
+      if (item.status === 'converting') {
+        return `
+          <span class="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-brand-600 dark:text-indigo-400 text-xs font-medium flex items-center gap-2">
+            <i class="fa-solid fa-circle-notch fa-spin text-xs"></i> กำลังแปลง...
+          </span>
+        `;
+      }
+      if (item.status === 'done') {
+        return `
+          <button onclick="downloadSingleFile('${item.id}')" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition active:scale-95 flex items-center gap-1.5">
+            <i class="fa-solid fa-download"></i> ดาวน์โหลด
+          </button>
+        `;
+      }
+      if (item.status === 'error') {
+        return `
+          <button onclick="convertSingleFile('${item.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-100 transition">
+            <i class="fa-solid fa-rotate-right mr-1"></i> ลองใหม่
+          </button>
+        `;
+      }
+      return '';
+    }
+
+    // Target Selection Change
+    window.updateTargetExt = function(id, newTarget) {
+      const item = fileQueue.find(i => i.id === id);
+      if (item) {
+        item.targetExt = newTarget;
+        item.resultName = `${item.baseName}.${newTarget}`;
+        item.status = 'idle';
+        item.resultBlob = null;
+        updateUI();
+      }
+    };
+
+    // Remove file
+    window.removeFile = function(id) {
+      fileQueue = fileQueue.filter(i => i.id !== id);
+      updateUI();
+    };
+
+    // Clear all
+    clearAllBtn.addEventListener('click', () => {
+      fileQueue = [];
+      updateUI();
+      showToast('ล้างคิวไฟล์ทั้งหมดแล้ว', 'info');
+    });
+
+    // Helper: HTML Escaping
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[m];
+      });
+    }
+
+    // ==========================================
+    // CORE CONVERSION ENGINES (100% Client-Side)
+    // ==========================================
+
+    // 1. Image Conversion with Canvas
+    async function convertImageFile(file, targetExt) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              let width = img.naturalWidth;
+              let height = img.naturalHeight;
+
+              // Max Width Constraint
+              const maxW = parseInt(document.getElementById('imageMaxWidth').value, 10);
+              if (maxW && width > maxW) {
+                const ratio = maxW / width;
+                width = maxW;
+                height = Math.round(height * ratio);
+              }
+
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+
+              // Background Fill for JPG or when alpha fallback needed
+              if (targetExt === 'jpg' || targetExt === 'jpeg' || targetExt === 'bmp') {
+                ctx.fillStyle = document.getElementById('imageBgColor').value || '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+              }
+
+              ctx.drawImage(img, 0, 0, width, height);
+
+              // Map target MIME
+              let mimeType = 'image/png';
+              if (targetExt === 'jpg' || targetExt === 'jpeg') mimeType = 'image/jpeg';
+              else if (targetExt === 'webp') mimeType = 'image/webp';
+              else if (targetExt === 'bmp') mimeType = 'image/bmp';
+              else if (targetExt === 'ico') mimeType = 'image/x-icon';
+
+              const quality = parseFloat(document.getElementById('imageQualityInput').value) || 0.9;
+
+              canvas.toBlob((blob) => {
+                if (blob) {
+                  resolve(blob);
+                } else {
+                  reject(new Error('ไม่สามารถสร้างไฟล์ภาพจาก Canvas ได้'));
+                }
+              }, mimeType, quality);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          img.onerror = () => reject(new Error('ไม่สามารถโหลดภาพต้นฉบับได้'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('อ่านไฟล์ภาพล้มเหลว'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 2. Data & Text Conversion Engines
+    async function convertDataOrDocFile(file, srcExt, targetExt) {
+      // Decode with UTF-8 explicitly to prevent Thai character encoding corruption
+      const arrayBuffer = await file.arrayBuffer();
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(arrayBuffer);
+
+      // UTF-8 BOM prefix for perfect Thai display in Excel, Notepad and all editors
+      const UTF8_BOM = '\uFEFF';
+
+      // CSV to JSON
+      if (srcExt === 'csv' && targetExt === 'json') {
+        const jsonResult = csvToJson(text);
+        return new Blob([UTF8_BOM + JSON.stringify(jsonResult, null, 2)], { type: 'application/json;charset=utf-8;' });
+      }
+
+      // CSV to TSV
+      if (srcExt === 'csv' && targetExt === 'tsv') {
+        const jsonResult = csvToJson(text);
+        const tsv = jsonToDelimited(jsonResult, '\t');
+        return new Blob([UTF8_BOM + tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
+      }
+
+      // TSV to CSV
+      if (srcExt === 'tsv' && targetExt === 'csv') {
+        const jsonResult = tsvToJson(text);
+        const csv = jsonToCsv(jsonResult);
+        return new Blob([UTF8_BOM + csv], { type: 'text/csv;charset=utf-8;' });
+      }
+
+      // JSON to CSV
+      if (srcExt === 'json' && targetExt === 'csv') {
+        const parsed = JSON.parse(text);
+        const csvResult = jsonToCsv(parsed);
+        return new Blob([UTF8_BOM + csvResult], { type: 'text/csv;charset=utf-8;' });
+      }
+
+      // TXT to CSV (split by line and commas/tabs)
+      if (srcExt === 'txt' && targetExt === 'csv') {
+        const lines = text.trim().split('\n');
+        const rows = lines.map(line => {
+          const cells = line.includes('\t') ? line.split('\t') : line.split(',');
+          return cells.map(c => `"${c.trim().replace(/"/g, '""')}"`).join(',');
+        });
+        return new Blob([UTF8_BOM + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      }
+
+      // Markdown to HTML
+      if ((srcExt === 'md' || srcExt === 'markdown') && targetExt === 'html') {
+        const html = markdownToHtml(text);
+        const fullDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Converted Markdown</title><style>body{font-family:'Sarabun',sans-serif;line-height:1.6;padding:2rem;max-width:800px;margin:auto;}</style></head><body>${html}</body></html>`;
+        return new Blob([UTF8_BOM + fullDoc], { type: 'text/html;charset=utf-8;' });
+      }
+
+      // Markdown to TXT
+      if ((srcExt === 'md' || srcExt === 'markdown') && targetExt === 'txt') {
+        const plain = text.replace(/(\*\*|__)(.*?)\1/g, '$2')
+                          .replace(/(\*|_)(.*?)\1/g, '$2')
+                          .replace(/#+\s+(.*)/g, '$1')
+                          .replace(/\[(.*?)\]\(.*?\)/g, '$1');
+        return new Blob([UTF8_BOM + plain], { type: 'text/plain;charset=utf-8;' });
+      }
+
+      // HTML to TXT
+      if (srcExt === 'html' && targetExt === 'txt') {
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        return new Blob([UTF8_BOM + (doc.body.textContent || '')], { type: 'text/plain;charset=utf-8;' });
+      }
+
+      // HTML to MD
+      if (srcExt === 'html' && targetExt === 'md') {
+        const md = htmlToMarkdown(text);
+        return new Blob([UTF8_BOM + md], { type: 'text/markdown;charset=utf-8;' });
+      }
+
+      // TXT to HTML
+      if (srcExt === 'txt' && targetExt === 'html') {
+        const paragraphs = text.split('\n\n').map(p => `<p>${escapeHtml(p.replace(/\n/g, '<br>'))}</p>`).join('\n');
+        const fullDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Converted Text</title><style>body{font-family:'Sarabun',sans-serif;line-height:1.6;padding:2rem;max-width:800px;margin:auto;}</style></head><body>${paragraphs}</body></html>`;
+        return new Blob([UTF8_BOM + fullDoc], { type: 'text/html;charset=utf-8;' });
+      }
+
+      // JSON to TXT or HTML
+      if (srcExt === 'json' && targetExt === 'txt') {
+        return new Blob([UTF8_BOM + text], { type: 'text/plain;charset=utf-8;' });
+      }
+      if (srcExt === 'json' && targetExt === 'html') {
+        const fullDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>JSON View</title><style>pre{background:#f4f4f4;padding:1rem;border-radius:8px;overflow:auto;font-family:'Sarabun',monospace;}</style></head><body><pre>${escapeHtml(text)}</pre></body></html>`;
+        return new Blob([UTF8_BOM + fullDoc], { type: 'text/html;charset=utf-8;' });
+      }
+
+      // CSV to TXT
+      if (srcExt === 'csv' && targetExt === 'txt') {
+        return new Blob([UTF8_BOM + text], { type: 'text/plain;charset=utf-8;' });
+      }
+
+      // Fallback
+      return new Blob([UTF8_BOM + text], { type: 'text/plain;charset=utf-8;' });
+    }
+
+    // TSV to JSON parser
+    function tsvToJson(tsvText) {
+      const lines = tsvText.trim().split(/\r?\n/).map(l => l.split('\t'));
+      if (lines.length < 2) return [];
+      const headers = lines[0].map(h => h.trim());
+      return lines.slice(1).map(row => {
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = row[idx] !== undefined ? row[idx].trim() : '';
+        });
+        return obj;
+      });
+    }
+
+    // JSON to Delimited Text (TSV/CSV)
+    function jsonToDelimited(jsonData, delimiter = ',') {
+      if (!Array.isArray(jsonData) || jsonData.length === 0) return '';
+      const headers = Array.from(new Set(jsonData.flatMap(obj => Object.keys(obj))));
+      const formatCell = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+      const rows = [headers.map(h => `"${h.replace(/"/g, '""')}"`).join(delimiter)];
+      for (const row of jsonData) {
+        rows.push(headers.map(h => formatCell(row[h])).join(delimiter));
+      }
+      return rows.join('\r\n');
+    }
+
+    // CSV Parser with proper quotes handling
+    function csvToJson(csvText) {
+      const lines = [];
+      let row = [''];
+      let inQuotes = false;
+
+      for (let i = 0; i < csvText.length; i++) {
+        const char = csvText[i];
+        const nextChar = csvText[i + 1];
+
+        if (char === '"' && inQuotes && nextChar === '"') {
+          row[row.length - 1] += '"';
+          i++;
+        } else if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          row.push('');
+        } else if ((char === '\r' || char === '\n') && !inQuotes) {
+          if (char === '\r' && nextChar === '\n') i++;
+          lines.push(row);
+          row = [''];
+        } else {
+          row[row.length - 1] += char;
+        }
+      }
+      if (row.length > 1 || row[0] !== '') lines.push(row);
+
+      if (lines.length < 2) return [];
+
+      const headers = lines[0].map(h => h.trim());
+      const result = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i];
+        if (values.length === 1 && values[0].trim() === '') continue;
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = values[idx] !== undefined ? values[idx].trim() : '';
+        });
+        result.push(obj);
+      }
+      return result;
+    }
+
+    // JSON Array to CSV Converter
+    function jsonToCsv(jsonData) {
+      if (!Array.isArray(jsonData)) {
+        if (typeof jsonData === 'object' && jsonData !== null) {
+          jsonData = [jsonData];
+        } else {
+          throw new Error('รูปแบบ JSON ไม่ถูกต้อง ต้องเป็น Array หรือ Object');
+        }
+      }
+
+      if (jsonData.length === 0) return '';
+
+      // Collect all unique keys
+      const headers = Array.from(new Set(jsonData.flatMap(obj => Object.keys(obj))));
+      
+      const formatCell = (val) => {
+        if (val === null || val === undefined) return '""';
+        let str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+        str = str.replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const csvRows = [];
+      csvRows.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
+
+      for (const row of jsonData) {
+        csvRows.push(headers.map(h => formatCell(row[h])).join(','));
+      }
+
+      return csvRows.join('\r\n');
+    }
+
+    // Lightweight Markdown to HTML parser
+    function markdownToHtml(md) {
+      let html = md
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") // sanitize
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
+        .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*)\*/gim, '<em>$1</em>')
+        .replace(/!\[(.*?)\]\((.*?)\)/gim, "<img alt='$1' src='$2' />")
+        .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2'>$1</a>")
+        .replace(/\n\s*\n/gim, '</p><p>')
+        .replace(/^\s*(.*?)\s*$/gim, '$1');
+      return `<p>${html}</p>`.replace(/<p><\/p>/g, '');
+    }
+
+    // Lightweight HTML to Markdown
+    function htmlToMarkdown(htmlStr) {
+      const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+      let md = '';
+
+      function traverse(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.textContent;
+        }
+        let children = Array.from(node.childNodes).map(traverse).join('');
+        switch (node.tagName?.toLowerCase()) {
+          case 'h1': return `\n# ${children}\n`;
+          case 'h2': return `\n## ${children}\n`;
+          case 'h3': return `\n### ${children}\n`;
+          case 'p': return `\n${children}\n`;
+          case 'strong':
+          case 'b': return `**${children}**`;
+          case 'em':
+          case 'i': return `*${children}*`;
+          case 'a': return `[${children}](${node.getAttribute('href') || ''})`;
+          case 'li': return `- ${children}\n`;
+          case 'br': return `\n`;
+          case 'blockquote': return `\n> ${children}\n`;
+          default: return children;
+        }
+      }
+
+      return traverse(doc.body).trim();
+    }
+
+    // Single File Conversion Handler
+    async function executeConversion(item) {
+      item.status = 'converting';
+      item.error = '';
+      updateUI();
+
+      try {
+        let resultBlob;
+        if (item.category === 'image') {
+          resultBlob = await convertImageFile(item.file, item.targetExt);
+        } else {
+          resultBlob = await convertDataOrDocFile(item.file, item.ext, item.targetExt);
+        }
+
+        item.resultBlob = resultBlob;
+        item.resultName = `${item.baseName}.${item.targetExt}`;
+        item.status = 'done';
+      } catch (err) {
+        console.error(err);
+        item.status = 'error';
+        item.error = err.message || 'การแปลงไฟล์ล้มเหลว';
+      }
+      updateUI();
+    }
+
+    window.convertSingleFile = async function(id) {
+      const item = fileQueue.find(i => i.id === id);
+      if (item) {
+        await executeConversion(item);
+        if (item.status === 'done') {
+          showToast(`แปลงไฟล์ ${item.resultName} เสร็จสิ้น`, 'success');
+        }
+      }
+    };
+
+    // Convert All in Queue
+    convertAllBtn.addEventListener('click', async () => {
+      const idleItems = fileQueue.filter(i => i.status === 'idle' || i.status === 'error');
+      if (idleItems.length === 0) {
+        showToast('ไม่มีไฟล์ที่ต้องแปลงในคิว', 'info');
+        return;
+      }
+
+      convertAllBtn.disabled = true;
+      convertAllBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      for (const item of idleItems) {
+        await executeConversion(item);
+      }
+
+      convertAllBtn.disabled = false;
+      convertAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      showToast('แปลงไฟล์ในคิวทั้งหมดเสร็จสิ้น', 'success');
+    });
+
+    // Download Single File
+    window.downloadSingleFile = function(id) {
+      const item = fileQueue.find(i => i.id === id);
+      if (item && item.resultBlob) {
+        const url = URL.createObjectURL(item.resultBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = item.resultName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    };
+
+    // Download All as ZIP
+    downloadAllZipBtn.addEventListener('click', async () => {
+      const completedItems = fileQueue.filter(i => i.status === 'done' && i.resultBlob);
+      if (completedItems.length === 0) {
+        showToast('ยังไม่มีไฟล์ที่แปลงเสร็จสมบูรณ์', 'error');
+        return;
+      }
+
+      try {
+        downloadAllZipBtn.disabled = true;
+        downloadAllZipBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบีบอัด .ZIP...';
+
+        const zip = new JSZip();
+        // Handle duplicated names
+        const namesCount = {};
+
+        completedItems.forEach(item => {
+          let fileName = item.resultName;
+          if (namesCount[fileName]) {
+            const count = namesCount[fileName];
+            namesCount[fileName]++;
+            const dotIdx = fileName.lastIndexOf('.');
+            fileName = `${fileName.substring(0, dotIdx)} (${count})${fileName.substring(dotIdx)}`;
+          } else {
+            namesCount[fileName] = 1;
+          }
+          zip.file(fileName, item.resultBlob);
+        });
+
+        const zipContent = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipContent);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `OmniConvert_Batch_${Date.now()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        showToast('ดาวน์โหลดไฟล์ ZIP สำเร็จ!', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP', 'error');
+      } finally {
+        downloadAllZipBtn.disabled = false;
+        downloadAllZipBtn.innerHTML = '<i class="fa-solid fa-file-zipper"></i> ดาวน์โหลดทั้งหมด (.ZIP)';
+      }
+    });
+  </script>
+</body>
+</html>
